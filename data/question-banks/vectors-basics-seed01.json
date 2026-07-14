@@ -470,10 +470,11 @@
    ],
    "tags": [
     "addition",
-    "algebra"
+    "algebra",
+    "magnitude"
    ],
    "difficulty": "medium",
-   "updated_at": "2026-07-14T22:05:11.153Z"
+   "updated_at": "2026-07-14T22:05:13.210Z"
   },
   {
    "id": "q_seed2",
