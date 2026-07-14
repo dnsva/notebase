@@ -2,3 +2,4 @@
 /notes.db filter=lfs diff=lfs merge=lfs -text
 /pdfs/math/vectors_6_1_v3.pdf filter=lfs diff=lfs merge=lfs -text
 /web/public/pdfs/math/vectors_6_1_v3.pdf filter=lfs diff=lfs merge=lfs -text
+/web/package-lock.json filter=lfs diff=lfs merge=lfs -text
