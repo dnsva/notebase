@@ -1,14 +1,29 @@
 # notebase
 
-Semantic search over scanned handwritten school notes.
+A study web-app for scanned school notes and question banks —
+**https://dnsva.github.io/notebase/**
 
-Drop a PDF of scanned notes into `pdfs/<subject>/`, push, and a couple of
-minutes later you can search all of your notes **by concept** — not exact
-words — at **https://dnsva.github.io/notebase/**, landing on the exact page
-of the exact PDF.
+- **Search** — one box, semantic, across everything: drop a PDF of notes
+  into `pdfs/<subject>/`, push, and minutes later you can search it **by
+  concept** (not exact words) and land on the exact page. Questions and
+  answers are searched in the same pass, ranked in the same vector space.
+- **Notes** — browse PDFs by subject folder with an inline viewer.
+- **Question banks** — create/edit/duplicate/move/delete questions right in
+  the app: rich text, LaTeX math (KaTeX), images, tags, difficulty levels,
+  and a study view with collapsed answers. Organized into folders.
 
 There is no server. A Python pipeline turns the PDFs into a static search
-index; the browser does the actual searching.
+index; question banks live as JSON files in this repo, read and written
+through the GitHub API; the browser does everything else.
+
+## Editing question banks
+
+Everyone can browse and search. To **edit**, open Settings in the app and
+paste a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+with *Contents: read & write* on only this repo. It's stored in that
+browser's localStorage and sent only to api.github.com. Every save is a
+real git commit — question history is browsable like any other change, and
+deletes are recoverable from history.
 
 ## How a search works
 
@@ -47,11 +62,25 @@ All paths and tunables (DPI, chunk sizes, model name, …) live in one place:
 
 ## The web app (`web/`)
 
-React + Vite, no server, no search library. [`src/search.js`](web/src/search.js)
-is the entire engine: fetch index → embed query → dot-product every chunk →
-top 10, deduplicated per page. [`scripts/copy-assets.js`](web/scripts/copy-assets.js)
-mirrors `pdfs/` and `search-index.json` into `public/` before every dev/build,
-so the repo stores each file exactly once.
+React + Vite + hash routing, no backend. The map:
+
+- [`lib/embeddings.js`](web/src/lib/embeddings.js) — the one place the
+  embedding model lives (transformers.js, WASM). Queries AND saved
+  questions are embedded here, in the same vector space as the pipeline's
+  note chunks.
+- [`lib/semanticSearch.js`](web/src/lib/semanticSearch.js) — corpus-agnostic
+  dot-product ranking.
+- [`lib/github.js`](web/src/lib/github.js) — the repo-as-database client
+  for question banks (`data/question-banks/*.json`, images in `data/assets/`).
+- [`lib/richtext.js`](web/src/lib/richtext.js) — the shared TipTap schema:
+  editor, renderer, and text-extraction all import it, so they can't drift.
+- [`data/`](web/src/data) — notes index + question-bank state (React
+  contexts); [`pages/`](web/src/pages) — Search, Notes, Banks, Bank;
+  [`components/`](web/src/components) — cards, editor, viewer, modals.
+
+[`scripts/copy-assets.js`](web/scripts/copy-assets.js) mirrors `pdfs/` and
+`search-index.json` into `public/` before every dev/build, so the repo
+stores each file exactly once.
 
 The first ever visit downloads the embedding model (~25 MB) from the Hugging
 Face CDN; after that it's cached by the browser.

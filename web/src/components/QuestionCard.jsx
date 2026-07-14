@@ -26,7 +26,8 @@ export default function QuestionCard({
   onMove, // null when there's no other bank to move to
 }) {
   return (
-    <article className={`question-card${expanded ? " expanded" : ""}`}>
+    // id enables search deep links (#/banks/b/<id>?expand=<qid>) to scroll here
+    <article id={`q-${question.id}`} className={`question-card${expanded ? " expanded" : ""}`}>
       <div className="question-head">
         <div className="question-badges">
           {question.difficulty && (
