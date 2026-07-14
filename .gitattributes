@@ -3,3 +3,4 @@
 /pdfs/math/vectors_6_1_v3.pdf filter=lfs diff=lfs merge=lfs -text
 /web/public/pdfs/math/vectors_6_1_v3.pdf filter=lfs diff=lfs merge=lfs -text
 /web/package-lock.json filter=lfs diff=lfs merge=lfs -text
+/data/assets/img_mrlaubjy_i6sn81.jpg filter=lfs diff=lfs merge=lfs -text
