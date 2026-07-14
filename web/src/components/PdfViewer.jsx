@@ -2,7 +2,9 @@
 // notebase web — PdfViewer.jsx
 // ============================================================================
 // Inline PDF viewer: the browser's native PDF renderer in an <iframe>, told
-// which page to open via the URL fragment (…/file.pdf#page=7).
+// which page to open via the URL fragment (…/file.pdf#page=7). Used by both
+// the search results (jump to matched page) and the Notes browser (open at
+// page 1).
 //
 // Two quirks worth knowing (both are why `key` is set on the iframe):
 //   1. Changing only the #fragment of an iframe src does NOT reliably make
@@ -13,26 +15,22 @@
 //      in SPEC.md §8): the PDF opens at page 1 there.
 // ============================================================================
 
-import { pdfUrl } from "../search.js";
+import { pdfUrl } from "../data/notesIndex.js";
 
-export default function PdfViewer({ result, onClose }) {
-  const url = `${pdfUrl(result)}#page=${result.page_number}`;
+export default function PdfViewer({ subject, filename, page, onClose }) {
+  const url = `${pdfUrl({ subject, filename })}#page=${page}`;
 
   return (
     <aside className="pdf-viewer">
       <div className="viewer-bar">
         <span className="viewer-title">
-          {result.filename} — page {result.page_number}
+          {filename} — page {page}
         </span>
         <button type="button" className="viewer-close" onClick={onClose}>
           ✕ close
         </button>
       </div>
-      <iframe
-        key={url}
-        src={url}
-        title={`${result.filename} page ${result.page_number}`}
-      />
+      <iframe key={url} src={url} title={`${filename} page ${page}`} />
     </aside>
   );
 }

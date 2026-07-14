@@ -12,12 +12,21 @@ FORMAT:
       "model": "all-MiniLM-L6-v2",     // frontend sanity-checks these two
       "dimensions": 384,               // fields before searching
       "generated_at": "2026-07-14T12:00:00Z",
+      "files": [                       // one entry per PDF — drives the
+        {"subject": "math",            // Notes browser (folders + page
+         "filename": "vectors.pdf",    // counts) without another fetch
+         "pages": 9, "chunks": 20},
+        ...
+      ],
       "chunks": [
         {"subject": "math", "filename": "vectors.pdf", "page_number": 3,
          "chunk_index": 0, "text": "...", "embedding": [0.013254, ...]},
         ...
       ]
     }
+
+    Caveat: "pages" is the highest page number that produced text, so fully
+    blank trailing pages aren't counted — close enough for display.
 
 Embedding floats are rounded to EXPORT_FLOAT_DECIMALS (6) places — far below
 ranking-relevant precision, roughly 40% smaller on disk. GitHub Pages then
@@ -93,12 +102,24 @@ def main() -> None:
         log.error("notes.db contains no chunks — nothing to export.")
         sys.exit(1)
 
+    # Per-PDF summary for the Notes browser (see format note in docstring).
+    files: dict[tuple[str, str], dict] = {}
+    for chunk in chunks:
+        key = (chunk["subject"], chunk["filename"])
+        entry = files.setdefault(
+            key,
+            {"subject": key[0], "filename": key[1], "pages": 0, "chunks": 0},
+        )
+        entry["pages"] = max(entry["pages"], chunk["page_number"])
+        entry["chunks"] += 1
+
     index = {
         "model": MODEL_NAME,
         "dimensions": EMBED_DIM,
         "generated_at": datetime.now(timezone.utc)
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z"),
+        "files": sorted(files.values(), key=lambda f: (f["subject"], f["filename"])),
         "chunks": chunks,
     }
     INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False))
