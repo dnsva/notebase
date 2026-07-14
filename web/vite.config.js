@@ -13,4 +13,19 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: process.env.VITE_BASE || "/",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        // The three heavyweight libraries change on their own release
+        // cadence, not ours — splitting them means a one-line app change
+        // doesn't force browsers to re-download ~500 KB of vendor code.
+        manualChunks: {
+          transformers: ["@huggingface/transformers"],
+          editor: ["@tiptap/react", "@tiptap/starter-kit", "@tiptap/extension-image",
+                   "@tiptap/extension-mathematics", "@tiptap/html"],
+          katex: ["katex"],
+        },
+      },
+    },
+  },
 });

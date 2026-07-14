@@ -333,7 +333,7 @@ end-to-end.
 
 # PART II — Stage 2: Responsive app, notes browser, question banks
 
-**Status:** awaiting approval. Stage 1 (Parts §1–§9) is built and deployed.
+**Status:** approved 2026-07-14; Phases 4–6 built and deployed.
 
 Stage 2 turns the single search page into a full study web-app with three
 sections — **Search**, **Notes**, **Question Banks** — fully responsive,

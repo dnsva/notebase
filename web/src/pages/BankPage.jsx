@@ -10,7 +10,7 @@
 // via the ?q= param handled in Phase 6.)
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuestionBanks } from "../data/questionBanks.jsx";
 import QuestionCard from "../components/QuestionCard.jsx";
@@ -37,6 +37,17 @@ export default function BankPage() {
   const [actionError, setActionError] = useState(null);
 
   const bank = banks.find((b) => b.id === bankId);
+
+  // Arriving from a search result (?expand=<qid>): scroll the found
+  // question into view once the bank has rendered.
+  const expandParam = searchParams.get("expand");
+  useEffect(() => {
+    if (!expandParam || !bank) return;
+    document.getElementById(`q-${expandParam}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [expandParam, bank]);
 
   const allTags = useMemo(
     () => [...new Set((bank?.questions ?? []).flatMap((q) => q.tags))].sort(),
