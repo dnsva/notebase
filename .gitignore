@@ -1,17 +1,25 @@
-# --- Pipeline artifacts (all derived; regenerate with: python pipeline/run_all.py) ---
-notes.db               # local SQLite+sqlite-vec database
-build/                 # intermediate stage handoffs (ocr-output.json, chunks.json)
+# NOTE: in .gitignore, a "#" only starts a comment at the BEGINNING of a
+# line — text after a pattern becomes part of the pattern and silently
+# breaks it. Keep all comments on their own lines.
 
-# --- Python ---
+# --- Pipeline artifacts ------------------------------------------------
+# All derived; regenerate with: python pipeline/run_all.py
+# (notes.db = local SQLite+sqlite-vec DB; build/ = stage handoff JSONs)
+notes.db
+build/
+
+# --- Python -------------------------------------------------------------
 .venv/
 __pycache__/
 *.pyc
 
-# --- Frontend ---
+# --- Frontend -----------------------------------------------------------
+# web/public/* are mirrored from the repo root by scripts/copy-assets.js
+# before every dev/build — committing them would store everything twice.
 web/node_modules/
 web/dist/
-web/public/pdfs/            # copied from ../pdfs at build time — never commit twice
-web/public/search-index.json  # copied from repo root at build time
+web/public/pdfs/
+web/public/search-index.json
 
-# --- OS noise ---
+# --- OS noise -----------------------------------------------------------
 .DS_Store

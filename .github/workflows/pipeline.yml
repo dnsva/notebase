@@ -1,0 +1,135 @@
+# =============================================================================
+#  notebase — CI/CD pipeline (Phase 3, SPEC.md §6)
+# =============================================================================
+#  WHAT THIS DOES, end to end, on every push to main that touches the note
+#  PDFs (or the pipeline/frontend code, or this file):
+#
+#    1. rebuild-and-deploy job
+#       a. install Tesseract + Python deps
+#       b. run the full pipeline (ocr -> embed -> store -> export),
+#          regenerating search-index.json from every PDF in pdfs/
+#       c. commit the updated index back to main — but only when its CONTENT
+#          changed (see the jq comparison below), with [skip ci] so the bot
+#          commit can't retrigger this workflow in a loop
+#       d. build the static site (Vite) with the /<repo>/ base path that
+#          GitHub Pages project sites require
+#    2. deploy job — publish the built site via the official Pages actions
+#
+#  Manual rerun: Actions tab -> "notebase pipeline" -> "Run workflow"
+#  (workflow_dispatch), e.g. after changing embedding parameters.
+#
+#  REQUIREMENT: repo Settings -> Pages -> Source must be "GitHub Actions".
+#  (actions/configure-pages below with enablement:true sets this up
+#  automatically on first run if Pages isn't configured yet.)
+# =============================================================================
+
+name: notebase pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pdfs/**"        # new/changed notes  -> reindex + redeploy
+      - "pipeline/**"    # pipeline changes   -> reindex + redeploy
+      - "web/**"         # frontend changes   -> redeploy
+      - "requirements.txt"
+      - ".github/workflows/pipeline.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # push the regenerated search-index.json back to main
+  pages: write      # deploy to GitHub Pages
+  id-token: write   # OIDC token that actions/deploy-pages requires
+
+# Never run two deploys at once; a newer push supersedes an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  rebuild-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ----------------------------------------------------- Python side ---
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pipeline dependencies
+        run: pip install -r requirements.txt
+
+      # The embedding model (~90 MB) is downloaded from Hugging Face on first
+      # use; caching it saves that download on every subsequent run.
+      - name: Cache sentence-transformers model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-model-${{ hashFiles('pipeline/config.py') }}
+
+      - name: Run pipeline (ocr -> embed -> store -> export)
+        run: python pipeline/run_all.py
+
+      # ------------------------------------------- commit index if changed ---
+      # export.py stamps a fresh generated_at on every run, so a naive
+      # `git diff` would ALWAYS see a change and produce a pointless commit
+      # per run. Compare the old and new index with that field stripped, and
+      # only commit when the actual content (chunks/vectors) differs.
+      - name: Commit updated search-index.json
+        run: |
+          git show HEAD:search-index.json | jq 'del(.generated_at)' > /tmp/old-index.json
+          jq 'del(.generated_at)' search-index.json > /tmp/new-index.json
+          if cmp -s /tmp/old-index.json /tmp/new-index.json; then
+            echo "Search index content unchanged — nothing to commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add search-index.json
+            git commit -m "chore: rebuild search index [skip ci]"
+            git push
+          fi
+
+      # ---------------------------------------------------- frontend side ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build site
+        # Project sites live at https://<user>.github.io/<repo>/, so Vite
+        # must prefix every asset URL with /<repo>/ (see web/vite.config.js).
+        # npm's prebuild hook copies pdfs/ + search-index.json into public/.
+        run: npm ci && VITE_BASE=/${{ github.event.repository.name }}/ npm run build
+        working-directory: web
+
+      # -------------------------------------------------------- publish ---
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          # First run on a repo where Pages isn't set to "GitHub Actions"
+          # yet: create/switch the Pages site to workflow-based deploys.
+          enablement: true
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: rebuild-and-deploy
+    runs-on: ubuntu-latest
+    # The github-pages environment is created automatically by the deploy
+    # action; its URL is the public site address.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
