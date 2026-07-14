@@ -1,0 +1,17 @@
+# --- Pipeline artifacts (all derived; regenerate with: python pipeline/run_all.py) ---
+notes.db               # local SQLite+sqlite-vec database
+build/                 # intermediate stage handoffs (ocr-output.json, chunks.json)
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- Frontend ---
+web/node_modules/
+web/dist/
+web/public/pdfs/            # copied from ../pdfs at build time — never commit twice
+web/public/search-index.json  # copied from repo root at build time
+
+# --- OS noise ---
+.DS_Store

@@ -1,0 +1,17 @@
+# notebase pipeline dependencies — see SPEC.md §7.
+# Install with:  pip install -r requirements.txt
+# Also requires the Tesseract binary on PATH (brew install tesseract / apt install tesseract-ocr).
+
+pymupdf                     # "fitz" — renders PDF pages to images, reads embedded text layers
+pillow                      # image preprocessing (grayscale + contrast) before OCR
+pytesseract                 # thin wrapper around the Tesseract OCR binary
+sentence-transformers<4     # all-MiniLM-L6-v2 embeddings, fully local
+sqlite-vec                  # SQLite extension providing the vec0 virtual table for vectors
+
+# --- version pins for Intel-Mac compatibility -------------------------------
+# PyTorch stopped publishing x86-64 macOS wheels after 2.2.2, and torch 2.2
+# was built against NumPy 1.x and predates what transformers >= 4.50 demands.
+# These pins keep the resolved set mutually compatible on Intel Macs; they
+# are harmless (just slightly older versions) on Linux CI / Apple Silicon.
+numpy<2
+transformers<4.50
