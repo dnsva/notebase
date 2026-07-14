@@ -322,6 +322,167 @@ end-to-end.
 
 1. **Repo name / Pages URL** — needed for `VITE_BASE` in CI (I'll default to
    `/notebase/` and the site at `https://<user>.github.io/notebase/`).
+   *(Resolved: `dnsva/notebase`, https://dnsva.github.io/notebase/)*
 2. **A couple of sample scanned PDFs** to develop and verify against — or I
    can generate synthetic "handwriting-style" test PDFs for the verification
    steps and you swap in real scans later.
+   *(Resolved: one LaTeX PDF provided; hybrid embedded-text/OCR added.)*
+
+---
+---
+
+# PART II — Stage 2: Responsive app, notes browser, question banks
+
+**Status:** awaiting approval. Stage 1 (Parts §1–§9) is built and deployed.
+
+Stage 2 turns the single search page into a full study web-app with three
+sections — **Search**, **Notes**, **Question Banks** — fully responsive,
+with question banks editable directly in the browser and persisted to this
+GitHub repo.
+
+## 10. Decisions locked in (from clarifying questions)
+
+| Decision | Choice |
+|---|---|
+| Question-bank persistence | **GitHub-backed.** The app reads/writes JSON files in this repo via the GitHub API. Editing requires a fine-grained personal access token (contents read/write on this repo only), pasted once per device and kept in localStorage. Without a token the app is read-only — viewing and searching still work for anyone. |
+| Rich text editor | **TipTap** (ProseMirror-based WYSIWYG): bold, italic, underline, headings, bullet/numbered lists, code. Content stored as TipTap JSON documents. |
+| Math | **KaTeX** via TipTap's mathematics extension — inline `$…$` and block math in questions and answers. |
+| Images | Questions and answers can include **uploaded images**: client-side downscaled (max 1600 px), committed to `data/assets/` in the repo via the GitHub API, referenced by URL in the rich text. |
+| Global search | **Semantic-only**, as today: search on submit using all-MiniLM-L6-v2, now across notes AND question banks. Best-effort term highlighting inside matched snippets (query words that literally occur are bolded). |
+
+New dependencies this stage (all frontend): `@tiptap/react`,
+`@tiptap/starter-kit`, `@tiptap/extension-image`,
+`@tiptap/extension-mathematics` + `katex`, and `react-router-dom`
+(HashRouter — hash URLs need zero GitHub Pages configuration). Approving
+this spec approves these.
+
+## 11. Data model (new `data/` tree in the repo)
+
+```
+data/
+├── question-banks/
+│   └── <bank-id>.json       one file per question bank (small writes, no
+│                            cross-bank conflicts)
+└── assets/
+    └── <asset-id>.<ext>     images uploaded from the editor
+```
+
+Bank file format:
+
+```json
+{
+  "id": "vectors-basics",
+  "title": "Vectors — basics",
+  "folder": "math",                    // "/"-separated folder path; folders
+  "updated_at": "2026-07-14T…Z",       // exist implicitly via banks in them
+  "questions": [
+    {
+      "id": "q_k3j9x2",
+      "question": { …TipTap JSON… },
+      "answer":   { …TipTap JSON… },
+      "question_text": "plain text extracted for search/embedding",
+      "answer_text":   "…",
+      "embedding": [0.013, …],         // 384-dim, embedded IN THE BROWSER on
+      "tags": ["addition", "geometry"],//   save with the same MiniLM model —
+      "difficulty": "medium",          //   one shared vector space with notes
+      "updated_at": "…"                // difficulty: easy|medium|hard|null
+    }
+  ]
+}
+```
+
+Key point: **no pipeline run is needed for question data.** Questions are
+embedded client-side (transformers.js is already loaded for search), and the
+app reads bank files straight from the repo — so question edits are live
+immediately, no redeploy. The Python pipeline and `search-index.json` remain
+exclusively about the PDFs.
+
+**Read path:** list `data/question-banks/` with one Git Trees API call, fetch
+files raw (unauthenticated works for the public repo). With a token saved,
+reads go through the authenticated contents API instead — fresher (no CDN
+cache) and a 5000 req/h limit.
+**Write path:** contents API PUT/DELETE with the stored token, using each
+file's `sha` for optimistic concurrency (on 409: refetch, reapply, retry).
+
+## 12. Frontend architecture (the refactor)
+
+`web/src/` reorganized; `search.js` splits into focused modules. Every module
+keeps the big explanatory header-comment convention.
+
+```
+src/
+├── main.jsx                    router + app shell mount
+├── App.jsx                     shell: responsive nav (sidebar ≥900px,
+│                               bottom tab bar <900px), routes
+├── lib/
+│   ├── embeddings.js           model loading + embed()          (from search.js)
+│   ├── semanticSearch.js       ranking/dedupe over any corpus   (from search.js)
+│   ├── github.js               GitHub API client: tree listing, get/put/
+│   │                           delete file, image upload, token handling
+│   └── richtext.js             TipTap helpers: plain-text extraction, empty-doc
+├── data/
+│   ├── notesIndex.js           load/validate search-index.json  (from search.js)
+│   └── questionBanks.js        bank CRUD + folder tree + question ops
+│                               (create/edit/duplicate/delete/move), exposed
+│                               through a React context + hooks
+├── pages/
+│   ├── SearchPage.jsx          global semantic search (notes + questions)
+│   ├── NotesPage.jsx           subject folders → PDF list → inline viewer
+│   ├── BanksPage.jsx           question-bank folders + bank management
+│   └── BankPage.jsx            one bank: study view + editing
+└── components/
+    ├── editor/RichTextEditor.jsx   TipTap wrapper (toolbar, math, images)
+    ├── editor/RichContent.jsx      read-only renderer for stored docs
+    ├── QuestionCard.jsx            collapsed-answer card; expand/collapse
+    ├── QuestionEditor.jsx          create/edit modal (Q, A, tags, difficulty)
+    ├── FilterBar.jsx               tag chips + difficulty filter
+    ├── FolderGrid.jsx              folder cards (shared: notes + banks)
+    ├── TokenSettings.jsx           PAT setup dialog + read-only banner
+    ├── PdfViewer.jsx               (existing, unchanged)
+    └── ResultCard.jsx              (extended: note hits open PDFs, question
+                                     hits deep-link into their bank)
+```
+
+### Section behavior
+
+- **Notes** — folder cards per subject (with counts), then the subject's PDFs
+  (title, page count), then the existing inline viewer. Page counts and file
+  lists come from a new `files` array in `search-index.json` (small export.py
+  addition — the only pipeline change in Stage 2).
+- **Question banks** — folder grid → banks → bank page. Bank page is the
+  study layout: question cards with answers collapsed, tap/click to reveal,
+  expand-all/collapse-all, filter by tags and difficulty. Editing (behind the
+  token): new question, edit, duplicate, delete (with confirm), move to
+  another bank, and bank-level create/rename/move/delete.
+- **Search** — one box, semantic, both corpora at once. Results labeled by
+  type: note results open the PDF at the page; question results open the
+  bank scrolled to that question with the answer expanded. Query terms that
+  appear verbatim in a snippet are highlighted.
+- **Responsive** — sidebar navigation ≥900 px, bottom tab bar below; PDF
+  viewer becomes full-width; editor toolbar wraps; touch-friendly hit areas.
+
+## 13. Implementation phases
+
+- **Phase 4 — Refactor + shell + notes browser.** Split search.js into
+  lib/ + data/ modules (no behavior change), add HashRouter + responsive
+  shell, build the Notes section, extend export.py with the `files` array.
+  *Verify:* existing search still returns identical results; notes browsing
+  works on desktop + 375 px mobile viewport.
+- **Phase 5 — Question banks.** github.js client + TokenSettings, bank/
+  question CRUD with TipTap (math + images), study view with tags/difficulty
+  filtering. *Verify:* full question lifecycle (create → edit → duplicate →
+  move → delete) round-trips through real GitHub commits; images render; app
+  is read-only without a token.
+- **Phase 6 — Unified search + deploy.** Fold question embeddings into
+  SearchPage, term highlighting, cross-section result links; polish pass;
+  deploy and verify everything on the live Pages site + phone.
+
+## 14. Accepted limitations (Stage 2)
+
+- Question edits require the GitHub token; there is no offline queue — edits
+  fail visibly if offline (data is never silently dropped).
+- Anonymous readers see raw.githubusercontent's CDN cache, so someone
+  browsing without a token may lag your latest edit by ~5 minutes.
+- Semantic-only search is not literally instantaneous (~100–300 ms after
+  submit) and finds meaning, not exact strings — chosen deliberately.
+- Everything in `data/` (questions, answers, images) is public, like the PDFs.
