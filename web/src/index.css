@@ -392,3 +392,364 @@ body {
     height: 60vh;
   }
 }
+
+/* ==========================================================================
+   Stage 2 Phase 5 — question banks, editor, modals
+   ========================================================================== */
+
+/* --- page head (title + actions) --------------------------------------- */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.page-head .page-title {
+  margin: 0;
+}
+
+.page-head-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* --- shared button variants -------------------------------------------- */
+button.primary {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+button.primary:disabled {
+  background: var(--muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button.secondary.danger,
+.question-actions .danger {
+  color: #b3261e;
+}
+
+/* --- nav settings button ------------------------------------------------ */
+.nav-settings {
+  margin-top: auto;    /* pin to the bottom of the sidebar */
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .nav-settings {
+    margin-top: 0;     /* in the tab bar it's just the fourth tab */
+  }
+}
+
+/* --- bank rows ----------------------------------------------------------- */
+.bank-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+}
+
+.bank-open {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* --- question cards ------------------------------------------------------ */
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.question-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+}
+
+.question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.4rem;
+}
+
+.question-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.question-actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.question-actions button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.question-actions button:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.question-body {
+  margin-top: 0.4rem;
+}
+
+.answer-toggle {
+  display: block;
+  margin-top: 0.6rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.answer-body {
+  margin-top: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+}
+
+/* --- tags, difficulty, filter bar ---------------------------------------- */
+.tag {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+}
+
+.difficulty {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.difficulty-easy   { background: #e5f3e5; color: #256a2b; }
+.difficulty-medium { background: #fdf2dc; color: #8a5a00; }
+.difficulty-hard   { background: #fbe4e2; color: #a2352c; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filter-chip {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.filter-chip.active {
+  outline: 2px solid var(--accent);
+}
+
+.filter-difficulties {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: 0.4rem;
+}
+
+/* --- modals --------------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 42, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.modal-text {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.modal input[type="text"],
+.modal input[type="password"],
+.modal select {
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  width: 100%;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.field-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.field-row .field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* --- rich text editor ------------------------------------------------------ */
+.rich-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.1rem;
+  padding: 0.3rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.toolbar-btn:hover {
+  background: var(--accent-soft);
+}
+
+.toolbar-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ProseMirror editing surface */
+.editor-surface .ProseMirror {
+  padding: 0.7rem 0.9rem;
+  min-height: 5.5rem;
+  outline: none;
+}
+
+.editor-surface .ProseMirror p {
+  margin: 0 0 0.4em;
+}
+
+/* --- rendered rich content (cards, search results) -------------------------- */
+.rich-content p {
+  margin: 0 0 0.4em;
+}
+
+.rich-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-content img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.rich-content code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 0.25em;
+  font-size: 0.9em;
+}

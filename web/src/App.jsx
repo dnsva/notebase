@@ -17,12 +17,19 @@
 //   #/banks          question banks (Phase 5)
 // ============================================================================
 
+import { useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import { QuestionBanksProvider } from "./data/questionBanks.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import NotesPage from "./pages/NotesPage.jsx";
 import BanksPage from "./pages/BanksPage.jsx";
+import BankPage from "./pages/BankPage.jsx";
+import TokenSettings from "./components/TokenSettings.jsx";
+import { hasToken } from "./lib/github.js";
 
 export default function App() {
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <div className="app">
       <nav className="nav">
@@ -42,16 +49,31 @@ export default function App() {
           <span className="nav-icon" aria-hidden="true">🗂️</span>
           <span>Questions</span>
         </NavLink>
+        {/* Editing unlock: dot marks whether a GitHub token is configured. */}
+        <button
+          type="button"
+          className="nav-link nav-settings"
+          onClick={() => setShowSettings(true)}
+        >
+          <span className="nav-icon" aria-hidden="true">{hasToken() ? "🔓" : "⚙️"}</span>
+          <span>Settings</span>
+        </button>
       </nav>
 
       <main className="content">
-        <Routes>
-          <Route path="/" element={<SearchPage />} />
-          <Route path="/notes" element={<NotesPage />} />
-          <Route path="/notes/:subject" element={<NotesPage />} />
-          <Route path="/banks/*" element={<BanksPage />} />
-        </Routes>
+        <QuestionBanksProvider>
+          <Routes>
+            <Route path="/" element={<SearchPage />} />
+            <Route path="/notes" element={<NotesPage />} />
+            <Route path="/notes/:subject" element={<NotesPage />} />
+            <Route path="/banks/b/:bankId" element={<BankPage />} />
+            <Route path="/banks/f/*" element={<BanksPage />} />
+            <Route path="/banks" element={<BanksPage />} />
+          </Routes>
+        </QuestionBanksProvider>
       </main>
+
+      {showSettings && <TokenSettings onClose={() => setShowSettings(false)} />}
     </div>
   );
 }
