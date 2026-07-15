@@ -2,7 +2,7 @@
  "id": "qa-temporary-mrlc0b9xed7t",
  "title": "QA — temporary",
  "folder": "qa-temp",
- "updated_at": "2026-07-15T00:19:21.609Z",
+ "updated_at": "2026-07-15T00:20:15.976Z",
  "questions": [
   {
    "id": "q_mrlc1sax1x63",
@@ -23,16 +23,6 @@
         }
        }
       ]
-     },
-     {
-      "type": "image",
-      "attrs": {
-       "src": "https://raw.githubusercontent.com/dnsva/notebase/main/data/assets/img_mrlc1720_5cyg9n.jpg",
-       "alt": null,
-       "title": null,
-       "width": 250,
-       "height": null
-      }
      },
      {
       "type": "paragraph"
@@ -446,7 +436,7 @@
     "formula"
    ],
    "difficulty": "easy",
-   "updated_at": "2026-07-15T00:19:21.609Z"
+   "updated_at": "2026-07-15T00:20:15.976Z"
   }
  ]
 }
