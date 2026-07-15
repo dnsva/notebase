@@ -20,12 +20,20 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { bankFolders, useQuestionBanks } from "../data/questionBanks.jsx";
 import FolderGrid from "../components/FolderGrid.jsx";
+import useEscape from "../lib/useEscape.js";
 
-function BankMetaEditor({ initial, onSave, onCancel }) {
+function BankMetaEditor({ initial, isNew, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [folder, setFolder] = useState(initial?.folder ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  const isDirty = title !== (initial?.title ?? "") || folder !== (initial?.folder ?? "");
+  function requestClose() {
+    if (saving) return;
+    if (!isDirty || window.confirm("Discard changes?")) onCancel();
+  }
+  useEscape(requestClose);
 
   async function handleSave() {
     setSaving(true);
@@ -39,18 +47,20 @@ function BankMetaEditor({ initial, onSave, onCancel }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="modal" role="dialog" aria-label={initial ? "Edit bank" : "New bank"}>
-        <h3 className="modal-title">{initial ? "Edit bank" : "New question bank"}</h3>
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && requestClose()}>
+      <div className="modal" role="dialog" aria-label={isNew ? "New bank" : "Edit bank"}>
+        <h3 className="modal-title">{isNew ? "New question bank" : "Edit bank"}</h3>
         <label className="field-label" htmlFor="bm-title">Title</label>
         <input id="bm-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-          placeholder="Vectors — basics" />
+          placeholder="Vectors — basics" autoFocus
+          onKeyDown={(e) => e.key === "Enter" && title.trim() && !saving && handleSave()} />
         <label className="field-label" htmlFor="bm-folder">Folder</label>
         <input id="bm-folder" type="text" value={folder} onChange={(e) => setFolder(e.target.value)}
-          placeholder="math (use / to nest, e.g. math/unit-6)" />
+          placeholder="math (use / to nest, e.g. math/unit-6)"
+          onKeyDown={(e) => e.key === "Enter" && title.trim() && !saving && handleSave()} />
         {error && <p className="status"><span className="error">{error}</span></p>}
         <div className="modal-actions">
-          <button type="button" className="secondary" onClick={onCancel} disabled={saving}>Cancel</button>
+          <button type="button" className="secondary" onClick={requestClose} disabled={saving}>Cancel</button>
           <button type="button" className="primary" onClick={handleSave}
             disabled={saving || !title.trim()}>
             {saving ? "Saving…" : "Save"}
@@ -66,7 +76,8 @@ export default function BanksPage() {
     useQuestionBanks();
   const { "*": folderParam } = useParams(); // splat: folder names can contain "/"
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(null); // null | "new" | bank object
+  // null | { isNew: true, folder } (create, folder prefilled) | bank (edit)
+  const [editing, setEditing] = useState(null);
 
   if (status === "loading") return <p className="status">Loading question banks…</p>;
   if (status === "error") {
@@ -91,7 +102,8 @@ export default function BanksPage() {
         <div className="page-head">
           <h2 className="page-title">Question banks</h2>
           {canEdit && (
-            <button type="button" className="primary" onClick={() => setEditing("new")}>
+            <button type="button" className="primary"
+              onClick={() => setEditing({ isNew: true, folder: "" })}>
               + New bank
             </button>
           )}
@@ -107,8 +119,10 @@ export default function BanksPage() {
           }))}
           onOpen={(key) => navigate(`/banks/f/${key}`)}
         />
-        {editing === "new" && (
+        {editing?.isNew && (
           <BankMetaEditor
+            isNew
+            initial={{ title: "", folder: editing.folder }}
             onSave={async (meta) => {
               const bank = await createBank(meta);
               setEditing(null);
@@ -125,11 +139,19 @@ export default function BanksPage() {
   const folder = folders.find((f) => f.folder === folderParam);
   return (
     <div className="page">
-      <nav className="breadcrumb">
-        <button type="button" onClick={() => navigate("/banks")}>Question banks</button>
-        <span aria-hidden="true"> / </span>
-        <span>{folderParam}</span>
-      </nav>
+      <div className="page-head">
+        <nav className="breadcrumb">
+          <button type="button" onClick={() => navigate("/banks")}>Question banks</button>
+          <span aria-hidden="true"> / </span>
+          <span>{folderParam}</span>
+        </nav>
+        {canEdit && (
+          <button type="button" className="primary"
+            onClick={() => setEditing({ isNew: true, folder: folderParam })}>
+            + New bank
+          </button>
+        )}
+      </div>
 
       {!folder && <p className="empty">No such folder.</p>}
 
@@ -148,8 +170,9 @@ export default function BanksPage() {
             </button>
             {canEdit && (
               <span className="question-actions">
-                <button type="button" title="Rename / move folder" onClick={() => setEditing(bank)}>✎</button>
-                <button type="button" title="Delete bank" className="danger"
+                <button type="button" title="Rename / move folder" aria-label={`Edit bank ${bank.title}`}
+                  onClick={() => setEditing(bank)}>✎</button>
+                <button type="button" title="Delete bank" aria-label={`Delete bank ${bank.title}`} className="danger"
                   onClick={() => handleDelete(bank)}>🗑</button>
               </span>
             )}
@@ -157,7 +180,19 @@ export default function BanksPage() {
         ))}
       </div>
 
-      {editing && editing !== "new" && (
+      {editing?.isNew && (
+        <BankMetaEditor
+          isNew
+          initial={{ title: "", folder: editing.folder }}
+          onSave={async (meta) => {
+            const bank = await createBank(meta);
+            setEditing(null);
+            navigate(`/banks/b/${bank.id}`);
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+      {editing && !editing.isNew && (
         <BankMetaEditor
           initial={editing}
           onSave={async (meta) => {

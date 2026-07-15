@@ -105,21 +105,24 @@ export default function BankPage() {
       <div className="page-head">
         <h2 className="page-title">{bank.title}</h2>
         <div className="page-head-actions">
-          {bank.questions.length > 0 && (
-            <button
-              type="button"
-              className="secondary"
-              onClick={() =>
-                setExpanded(expanded.size === visible.length
-                  ? new Set()
-                  : new Set(visible.map((q) => q.id)))
-              }
-            >
-              {expanded.size === visible.length && visible.length > 0
-                ? "Collapse all"
-                : "Expand all"}
-            </button>
-          )}
+          {visible.length > 0 && (() => {
+            // "All expanded" must mean all *visible* questions — comparing
+            // set sizes breaks when filters hide some expanded questions.
+            const allVisibleExpanded = visible.every((q) => expanded.has(q.id));
+            return (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  setExpanded(allVisibleExpanded
+                    ? new Set()
+                    : new Set(visible.map((q) => q.id)))
+                }
+              >
+                {allVisibleExpanded ? "Collapse all" : "Expand all"}
+              </button>
+            );
+          })()}
           {canEdit && (
             <button type="button" className="primary" onClick={() => setEditing("new")}>
               + New question

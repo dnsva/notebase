@@ -69,6 +69,10 @@ export default function App() {
             <Route path="/banks/b/:bankId" element={<BankPage />} />
             <Route path="/banks/f/*" element={<BanksPage />} />
             <Route path="/banks" element={<BanksPage />} />
+            {/* Catch-all: stale bookmarks/typos land somewhere useful. */}
+            <Route path="*" element={
+              <div className="page"><p className="empty">Page not found — use the navigation.</p></div>
+            } />
           </Routes>
         </QuestionBanksProvider>
       </main>

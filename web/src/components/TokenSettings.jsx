@@ -14,9 +14,11 @@
 
 import { useState } from "react";
 import { getToken, setToken, OWNER, REPO } from "../lib/github.js";
+import useEscape from "../lib/useEscape.js";
 
 export default function TokenSettings({ onClose }) {
   const [value, setValue] = useState(getToken() ?? "");
+  useEscape(onClose);
 
   function save() {
     setToken(value);

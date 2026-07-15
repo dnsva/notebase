@@ -9,7 +9,7 @@
 // browser back button walks back up the hierarchy naturally.
 // ============================================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../data/appData.jsx";
 import { subjectFolders } from "../data/notesIndex.js";
@@ -17,13 +17,23 @@ import FolderGrid from "../components/FolderGrid.jsx";
 import PdfViewer from "../components/PdfViewer.jsx";
 
 export default function NotesPage() {
-  const { index } = useAppData();
+  const { index, status, error } = useAppData();
   const { subject } = useParams(); // undefined at #/notes -> folder view
   const navigate = useNavigate();
   const [openFile, setOpenFile] = useState(null);
 
+  // Close the viewer when the subject changes (e.g. browser back) — a PDF
+  // from the previous subject lingering over the new list is disorienting.
+  useEffect(() => {
+    setOpenFile(null);
+  }, [subject]);
+
   if (!index) {
-    return <p className="status">Loading notes…</p>;
+    // Distinguish "still fetching" from "fetch failed" — a permanent
+    // "Loading…" with no explanation is the worst kind of broken.
+    return status === "error"
+      ? <p className="status"><span className="error">{error}</span></p>
+      : <p className="status">Loading notes…</p>;
   }
 
   const folders = subjectFolders(index);

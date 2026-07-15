@@ -17,15 +17,53 @@ import { Mathematics } from "@tiptap/extension-mathematics";
 import { generateHTML } from "@tiptap/html";
 import katex from "katex";
 
-/** The extension set shared by the editor and the HTML renderer. */
-export function richTextExtensions() {
+/**
+ * Image node with a persistent display width. The editor lets you drag a
+ * handle to resize (components/editor/ImageView.jsx attaches the node view);
+ * the width is stored in the document as a `width` attribute (CSS pixels)
+ * so it round-trips through save/reload and renders identically in the
+ * read-only views. max-width:100% (index.css) keeps any stored width from
+ * overflowing narrow screens.
+ */
+export const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        renderHTML: (attrs) =>
+          attrs.width ? { style: `width: ${attrs.width}px` } : {},
+        parseHTML: (element) => {
+          const styleWidth = Number.parseInt(element.style?.width, 10);
+          return Number.isFinite(styleWidth) ? styleWidth : null;
+        },
+      },
+    };
+  },
+});
+
+/**
+ * The extension set shared by the editor and the HTML renderer.
+ *
+ * @param {object} [options]
+ * @param {(kind, node, pos) => void} [options.onMathClick] — editor-only:
+ *   invoked when a math node is clicked so the editor can offer editing.
+ *   Omitted in read contexts (RichContent, Node scripts).
+ */
+export function richTextExtensions({ onMathClick } = {}) {
   return [
     StarterKit,
-    Image,
+    ResizableImage,
     // throwOnError:false renders bad LaTeX as red source instead of crashing
     Mathematics.configure({
-      inlineOptions: { katexOptions: { throwOnError: false } },
-      blockOptions: { katexOptions: { throwOnError: false } },
+      inlineOptions: {
+        katexOptions: { throwOnError: false },
+        ...(onMathClick && { onClick: (node, pos) => onMathClick("inline", node, pos) }),
+      },
+      blockOptions: {
+        katexOptions: { throwOnError: false },
+        ...(onMathClick && { onClick: (node, pos) => onMathClick("block", node, pos) }),
+      },
     }),
   ];
 }
