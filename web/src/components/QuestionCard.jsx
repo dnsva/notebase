@@ -41,12 +41,12 @@ export default function QuestionCard({
         </div>
         {canEdit && (
           <div className="question-actions">
-            <button type="button" title="Edit" onClick={onEdit}>✎</button>
-            <button type="button" title="Duplicate" onClick={onDuplicate}>⧉</button>
+            <button type="button" title="Edit" aria-label="Edit question" onClick={onEdit}>✎</button>
+            <button type="button" title="Duplicate" aria-label="Duplicate question" onClick={onDuplicate}>⧉</button>
             {onMove && (
-              <button type="button" title="Move to another bank" onClick={onMove}>⇄</button>
+              <button type="button" title="Move to another bank" aria-label="Move question to another bank" onClick={onMove}>⇄</button>
             )}
-            <button type="button" title="Delete" className="danger" onClick={onDelete}>🗑</button>
+            <button type="button" title="Delete" aria-label="Delete question" className="danger" onClick={onDelete}>🗑</button>
           </div>
         )}
       </div>

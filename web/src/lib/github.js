@@ -171,12 +171,37 @@ export async function deleteJsonFile(path, sha, message) {
 // --------------------------------------------------------------- images ---
 
 /**
+ * Decode an image File to something drawable. createImageBitmap is fast but
+ * strict — it rejects some files (unusual color profiles, slightly
+ * malformed PNGs, some clipboard screenshots) that the browser's normal
+ * <img> decoder handles fine. Try strict first, then fall back to the
+ * lenient path so "paste a screenshot" never fails on decode quirks.
+ */
+async function decodeImage(file) {
+  try {
+    return await createImageBitmap(file);
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new (window.Image)();
+      img.src = url;
+      await img.decode();
+      return img; // drawImage accepts HTMLImageElement too
+    } finally {
+      // revoke AFTER drawImage would be safer, but decode() fully loads the
+      // bitmap, so the object URL is no longer needed by draw time.
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    }
+  }
+}
+
+/**
  * Downscale an image File to <= maxDim px on its long edge (screenshots and
  * phone photos are otherwise multi-MB), commit it to data/assets/, and
  * return a URL usable in rich text immediately (raw URL, no redeploy).
  */
 export async function uploadImage(file, maxDim = 1600) {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await decodeImage(file);
   const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);

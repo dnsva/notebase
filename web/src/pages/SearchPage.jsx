@@ -29,7 +29,7 @@ import PdfViewer from "../components/PdfViewer.jsx";
 
 export default function SearchPage() {
   const { status, modelProgress, error, index, embedder } = useAppData();
-  const { banks } = useQuestionBanks();
+  const { banks, status: banksStatus } = useQuestionBanks();
   const navigate = useNavigate();
   const [results, setResults] = useState(null); // null = no search yet
   const [lastQuery, setLastQuery] = useState("");
@@ -108,6 +108,10 @@ export default function SearchPage() {
           results === null
             ? `Ready — ${index.chunks.length} note chunks and ${questionCount} questions indexed. Search by concept, not exact words.`
             : `${results.length} result${results.length === 1 ? "" : "s"}`
+        )}
+        {/* Searching notes-only is better than blocking, but say so. */}
+        {status === "ready" && banksStatus === "error" && (
+          <span className="error"> (question banks unavailable — searching notes only)</span>
         )}
         {searching && "Searching…"}
         {status === "error" && <span className="error">{error}</span>}
