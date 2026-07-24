@@ -15,3 +15,5 @@ sqlite-vec                  # SQLite extension providing the vec0 virtual table 
 # are harmless (just slightly older versions) on Linux CI / Apple Silicon.
 numpy<2
 transformers<4.50
+
+#test
